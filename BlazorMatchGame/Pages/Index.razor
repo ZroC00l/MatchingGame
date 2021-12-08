@@ -1,0 +1,152 @@
+﻿@page "/"
+@using System.Timers
+
+<style>
+
+    .container{
+        width: 400px;
+    }
+    button{
+        width: 100px;
+        height: 100px;
+        font-size: 50px;
+    }
+</style>
+<div class="container">
+
+    <div class="row">
+        @for( var animalNumber = 0; animalNumber < shuffledAnimals.Count; animalNumber++)
+        {
+            var animal = shuffledAnimals[animalNumber];
+            var uniqueDescription = $"Button #{animalNumber}";// This description helps preventing double clicking the same emoji twice for matching
+
+                <div class="col-3">
+
+                    <button @onclick="@( ()=> ButtonClick(animal,uniqueDescription) )" type="button" class="btn btn-outline-dark">
+                        <h1>@animal</h1>
+                    </button>
+
+                </div>
+            }
+
+    </div>
+    <div class="row">
+        <h2>Matches Found: @matchesFound  </h2>
+    </div>
+    <div class="row">
+        <h2>Timer: @timeDisplay  </h2>
+    </div>
+
+  
+    
+</div>
+@code{
+    List<string> animalEmoji = new List<string>()
+    {
+        "🐶", "🐶",
+        "🐺", "🐺",
+        "🐰", "🐰",
+        "🦁", "🦁",
+        "🐨", "🐨",
+        "🐷", "🐷",
+        "🐮", "🐮",
+        "🐸", "🐸",
+    };
+
+    List<string> shuffledAnimals = new List<string>();
+    int matchesFound = 0;
+    Timer timer;
+    int tenthsOfSecondsElapsed = 0;
+    string timeDisplay;
+
+    List<Timer> v = new List<Timer>();
+
+    protected override void OnInitialized()
+    {
+        //This method refreshes the board every time the page is reloaded
+        timer = new Timer(100);
+        timer.Elapsed += Timer_Tick;
+        SetUpGame();
+    }
+    private void shuffleBoard()
+    {
+        Random random = new Random();
+        shuffledAnimals = animalEmoji.OrderBy(item => random.Next()).ToList();
+    }
+    private void SetUpGame()
+    {
+        //This method sets up the board and reshuffles(randomly) the emoji array every time the game is setup anew
+        shuffleBoard();
+        matchesFound = 0;
+
+        //Setting countdown to start at 20 seconds
+        tenthsOfSecondsElapsed = 200;
+    }
+
+    string lastAnimalFound = string.Empty;
+    string lastDescription = string.Empty;
+
+    private void ButtonClick(string animal, string animalDescription)
+    {
+        if(lastAnimalFound == string.Empty)
+        {
+            //first selection of the pair, remember it
+            //lastDescription is used to track the description of each button clicked
+
+            lastAnimalFound = animal;
+            lastDescription = animalDescription;
+
+            timer.Start();
+        }
+        else if((lastAnimalFound == animal) && (animalDescription != lastDescription))
+        {
+            //Match found. Reset for next pair
+            lastAnimalFound = string.Empty;
+
+
+            Random random = new Random();
+
+            //Replace found animals with empty string to hide them
+            shuffledAnimals = shuffledAnimals.Select(a => a.Replace(animal, string.Empty)).ToList();
+
+            //Shuffle the board with each successful match
+
+            shuffledAnimals =shuffledAnimals.OrderBy(item => random.Next()).ToList();
+
+            matchesFound++;
+            if(matchesFound == 8)
+            {
+                timer.Stop();
+                timeDisplay += "-Congratulations! You've beat the timer,Play Again?";
+                
+                
+                SetUpGame();
+            }
+
+        }
+        else
+        {
+            //user selected pair that doesn't match so reset selection
+            lastAnimalFound = string.Empty;
+        }
+
+    }
+
+    private void Timer_Tick(Object source, ElapsedEventArgs e)
+    {
+        InvokeAsync(() =>
+        {
+            tenthsOfSecondsElapsed--;
+            timeDisplay = (tenthsOfSecondsElapsed / 10F).ToString("0.0s");
+
+            if (tenthsOfSecondsElapsed == 0)
+            {
+                timer.Stop();
+                timeDisplay += "-Time ran out, please play Again!";
+                SetUpGame();
+            }
+            StateHasChanged();
+        });
+    }
+
+}
